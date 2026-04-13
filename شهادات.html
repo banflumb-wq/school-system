@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>School System</title>
+
+<style>
+body{margin:0;font-family:Arial;background:#fffbe6}
+
+header{
+background:linear-gradient(90deg,green,gold);
+color:white;
+text-align:center;
+padding:15px;
+}
+
+.container{padding:15px;max-width:900px;margin:auto}
+
+.hidden{display:none}
+
+button,input,select{
+width:100%;
+padding:10px;
+margin:5px 0;
+border-radius:10px;
+border:2px solid gold;
+background:white;
+}
+
+.card{
+background:white;
+padding:10px;
+margin:10px 0;
+border-radius:10px;
+border:2px solid green;
+}
+
+img{
+width:70px;
+height:70px;
+border-radius:50%;
+object-fit:cover;
+}
+</style>
+</head>
+
+<body>
+
+<header>🏫 School System</header>
+
+<div class="container">
+
+<!-- LOGIN -->
+<div id="loginPage">
+
+<h3>تسجيل الدخول</h3>
+
+<input id="loginName" placeholder="الاسم">
+<input id="loginPass" placeholder="كلمة المرور">
+
+<button onclick="login()">دخول</button>
+
+<p>
+ما عندك حساب؟
+<span style="color:blue;cursor:pointer" onclick="showRegister()">اعمل حساب</span>
+</p>
+
+</div>
+
+<!-- REGISTER -->
+<div id="registerPage" class="hidden">
+
+<h3>إنشاء حساب</h3>
+
+<input id="regName">
+<input id="regPass">
+<input type="file" id="regImg">
+
+<button onclick="register()">إنشاء</button>
+
+</div>
+
+<!-- HOME -->
+<div id="homePage" class="hidden">
+
+<h3>🏠 الرئيسية</h3>
+
+<button onclick="openCert()">🏫 الشهادات</button>
+<button onclick="openFriends()">👥 الأصدقاء</button>
+<button onclick="openSettings()">⚙️ الإعدادات</button>
+
+<div id="certHomeList"></div>
+
+</div>
+
+<!-- CERT -->
+<div id="certPage" class="hidden">
+
+<h3>🏫 الشهادات</h3>
+
+<select id="filterGrade" onchange="renderCerts()">
+<option value="all">كل الصفوف</option>
+<option value="4">الصف الرابع</option>
+<option value="5">الصف الخامس</option>
+<option value="6">الصف السادس</option>
+<option value="7">الصف السابع</option>
+</select>
+
+<button onclick="openForm()">➕ صنع شهادة</button>
+
+<div id="certList"></div>
+
+<button onclick="backHome()">رجوع</button>
+
+</div>
+
+<!-- FORM -->
+<div id="formPage" class="hidden">
+
+<h3>📄 إنشاء شهادة</h3>
+
+<input id="certName" placeholder="اسم الطالب">
+
+<select id="grade">
+<option value="4">4</option>
+<option value="5">5</option>
+<option value="6">6</option>
+<option value="7">7</option>
+</select>
+
+<input id="math" placeholder="رياضيات">
+<input id="arabic" placeholder="عربي">
+<input id="english" placeholder="إنجليزي">
+<input id="science" placeholder="علوم">
+
+<input id="finalAvg" placeholder="المعدل النهائي (0 - 100)">
+
+<input type="file" id="certImg">
+
+<button onclick="saveCert()">حفظ</button>
+
+</div>
+
+<!-- FRIENDS -->
+<div id="friendsPage" class="hidden">
+
+<h3>👥 الأصدقاء</h3>
+
+<input id="userSearch" placeholder="اسم مستخدم">
+<button onclick="addFriend()">إرسال طلب</button>
+
+<div id="friendsList"></div>
+
+<button onclick="backHome()">رجوع</button>
+
+</div>
+
+<!-- SETTINGS -->
+<div id="settingsPage" class="hidden">
+
+<h3>⚙️ الإعدادات</h3>
+
+<input id="codeInput" placeholder="اكتب الكود">
+
+<button onclick="checkCode()">تفعيل الكود</button>
+
+<button onclick="logout()">🚪 تسجيل خروج</button>
+
+<button onclick="backHome()">رجوع</button>
+
+</div>
+
+</div>
+
+<script>
+
+let users = JSON.parse(localStorage.getItem("users")||"{}");
+let certs = JSON.parse(localStorage.getItem("certs")||"[]");
+let friends = JSON.parse(localStorage.getItem("friends")||"[]");
+
+let currentUser = null;
+
+// ================= AUTO LOGIN =================
+window.onload = function(){
+
+let savedUser = localStorage.getItem("currentUser");
+
+if(savedUser && users[savedUser]){
+currentUser = savedUser;
+loginPage.classList.add("hidden");
+homePage.classList.remove("hidden");
+renderCerts();
+}else{
+loginPage.classList.remove("hidden");
+}
+
+}
+
+// ================= REGISTER =================
+function register(){
+
+let file = regImg.files[0];
+if(!file){alert("اختار صورة");return;}
+
+let reader = new FileReader();
+
+reader.onload = e=>{
+
+users[regName.value] = {
+pass: regPass.value,
+img: e.target.result
+};
+
+localStorage.setItem("users",JSON.stringify(users));
+
+alert("تم إنشاء الحساب ✔️");
+
+showLogin();
+
+};
+
+reader.readAsDataURL(file);
+}
+
+// ================= LOGIN =================
+function login(){
+
+let n = loginName.value;
+let p = loginPass.value;
+
+if(users[n] && users[n].pass === p){
+
+currentUser = n;
+localStorage.setItem("currentUser", n);
+
+loginPage.classList.add("hidden");
+homePage.classList.remove("hidden");
+
+renderCerts();
+
+}else alert("خطأ ❌");
+
+}
+
+// ================= LOGOUT (FIXED) =================
+function logout(){
+
+localStorage.removeItem("currentUser");
+
+alert("تم تسجيل الخروج ✔️");
+
+location.reload();
+
+}
+
+// ================= OPEN =================
+function openCert(){
+homePage.classList.add("hidden");
+certPage.classList.remove("hidden");
+renderCerts();
+}
+
+function openFriends(){
+homePage.classList.add("hidden");
+friendsPage.classList.remove("hidden");
+renderFriends();
+}
+
+function openSettings(){
+homePage.classList.add("hidden");
+settingsPage.classList.remove("hidden");
+}
+
+// ================= BACK =================
+function backHome(){
+certPage.classList.add("hidden");
+friendsPage.classList.add("hidden");
+settingsPage.classList.add("hidden");
+formPage.classList.add("hidden");
+homePage.classList.remove("hidden");
+}
+
+// ================= CERT =================
+function openForm(){
+formPage.classList.remove("hidden");
+}
+
+function saveCert(){
+
+let file = certImg.files[0];
+if(!file){alert("حط صورة");return;}
+
+let reader = new FileReader();
+
+reader.onload = e=>{
+
+certs.push({
+name:certName.value || "بدون اسم",
+grade:grade.value,
+img:e.target.result,
+finalAvg: finalAvg.value || 0
+});
+
+localStorage.setItem("certs",JSON.stringify(certs));
+
+formPage.classList.add("hidden");
+
+renderCerts();
+
+};
+
+reader.readAsDataURL(file);
+}
+
+function renderCerts(){
+
+certList.innerHTML="";
+certHomeList.innerHTML="";
+
+let filter = filterGrade?.value || "all";
+
+certs.forEach(c=>{
+
+if(filter !== "all" && c.grade !== filter) return;
+
+let html = `
+<div class="card">
+<h3>${c.name} (صف ${c.grade})</h3>
+<img src="${c.img}">
+<p>📊 المعدل: ${c.finalAvg}</p>
+</div>
+`;
+
+certList.innerHTML += html;
+certHomeList.innerHTML += html;
+
+});
+
+}
+
+// ================= FRIENDS =================
+function addFriend(){
+
+friends.push({
+from:currentUser,
+to:userSearch.value
+});
+
+localStorage.setItem("friends",JSON.stringify(friends));
+
+renderFriends();
+
+}
+
+function renderFriends(){
+
+friendsList.innerHTML="";
+
+friends.forEach(f=>{
+friendsList.innerHTML += `
+<div class="card">${f.from} ➜ ${f.to}</div>
+`;
+});
+
+}
+
+// ================= SETTINGS =================
+function checkCode(){
+
+if(codeInput.value==="ZKEY"){
+localStorage.setItem("ZKEY","true");
+alert("تم التفعيل ✔️");
+}
+
+codeInput.value="";
+}
+
+// ================= UI =================
+function showRegister(){
+loginPage.classList.add("hidden");
+registerPage.classList.remove("hidden");
+}
+
+function showLogin(){
+registerPage.classList.add("hidden");
+loginPage.classList.remove("hidden");
+}
+
+</script>
+
+</body>
+</html>
